@@ -86,5 +86,213 @@
   + We can now login into the Mariadb using the command since we set the password to admin123
 
         mysql -u root -padmin123
-  + Next we 
-  + Create a database account by running the following commands
+  + Next we clone our source code to database vm and change directory to the sql file
+
+        git clone -b local-setup https://github.com/sadebare/vprofile-project.git
+        cd vprofile-project/src/main/resources
+  + Initialize the database account by running the following commands
+
+        mysql -u root -p"$DATABASE_PASS" -e "create database accounts"
+        mysql -u root -p"$DATABASE_PASS" -e "grant all privileges on accounts.* TO 'admin'@'app01' identified by 'admin123' "
+        cd ../../..
+        mysql -u root -p"$DATABASE_PASS" accounts < src/main/resources/db_backup.sql
+        mysql -u root -p"$DATABASE_PASS" -e "FLUSH PRIVILEGES"
+  + Login into the database and do some verifications if it contains the table - `role`, `user` and `user_role`
+
+        mysql -u root -p"$DATABASE_PASS"
+        MariaDB [(none)]> show databases;
+        MariaDB [(none)]> use accounts;
+        MariaDB [accounts]> show tables;
+        MariaDB [accounts]> exit
+        Bye
+  + Lastly, we restart our mariadb-server for configuration to work properly and then exit from the db vm.
+
+         systemctl restart mariadb
+         logout
+
+####  - MEMCACHE SETUP
+  + Firstly, Login to the vm mc01 and change to root user
+
+        vagrant ssh mc01
+        sudo -i
+  + Update the vm to patch all  by running
+        
+        yum update -y
+        yum install epel-release -y
+  + Install, start and enable memcache 
+
+        yum install memcached -y
+        systemctl start memcached
+        systemctl enable memcached
+        systemctl status memcached
+      ![memcached](./images/memcached.png)
+  + We will run one more command to that memcached can listen on TCP port 11211 and UDP port 11111.
+
+        memcached -p 11211 -U 11111 -u memcached -d
+  + We can validate if it is running on right port with below command:
+
+        ss -tunlp | grep 11211
+    ![mem_valid](./images/memcached_valid.png)
+  + Great! we now have our memcached server setup.
+  + Lastly, we logout from the vm
+
+### - RABBITMQ SETUP
+  + First, we `ssh` into rmq01 vm and change to root user
+
+        vagrant ssh rmq01
+  + let's update OS with latest patches
+
+        yum update -y
+  + Set EPEL Repository
+
+        yum install epel-release -y
+  + Install dependencies on the server
+
+        sudo yum install wget -y
+        cd /tmp/
+        wget http://packages.erlang-solutions.com/erlang-solutions-2.0-1.noarch.rpm
+        sudo rpm -Uvh erlang-solutions-2.0-1.noarch.rpm
+        sudo yum -y install erlang socat
+  + Install Rabbitmq Server on our vm
+
+        curl -s https://packagecloud.io/install/repositories/rabbitmq/rabbitmq-server/script.rpm.sh | sudo bash
+        sudo yum install rabbitmq-server -y
+  + Start & Enable RabbitMQ
+
+        sudo systemctl start rabbitmq-server
+        sudo systemctl enable rabbitmq-server
+        sudo systemctl status rabbitmq-server
+      ![rabbitmq](./images/rabbitmq_validation.png)
+  + Configuration Change with RabbitMQ
+
+        sudo sh -c 'echo "[{rabbit, [{loopback_users, []}]}]." > /etc/rabbitmq/rabbitmq.config'
+        sudo rabbitmqctl add_user test test
+        sudo rabbitmqctl set_user_tags test administrator
+  + After all the configuration changes, we can then restart our services and exit the vm.
+
+         systemctl restart rabbitmq-server
+         logout
+
+### - TOMCAT SETUP
+  + First, we login to the app01, change the user to root, update the the OS and update set the repository
+
+        vagrant ssh app01
+        sudo -i
+        yum update -y
+        yum install epel-release -y
+  + We can then install our dependencies for Tomcat to host our java application source code
+
+        yum install java-1.8.0-openjdk -y
+        yum install git maven wget -y
+  + Since all dependencies for Tomcat are installed, we can then download Tomcat Package
+
+        cd /tmp/
+        wget https://archive.apache.org/dist/tomcat/tomcat-8/v8.5.37/bin/apache-tomcat-8.5.37.tar.gz
+        tar xzvf apache-tomcat-8.5.37.tar.gz
+  + We can then add tomcat user, copy data to tomcat home directory, also to make tomcat user owner of tomcat home dir by running the command
+
+        useradd --home-dir /usr/local/tomcat8 --shell /sbin/nologin tomcat
+        cp -r /tmp/apache-tomcat-8.5.37/* /usr/local/tomcat8/
+  + Next, we setup systemd for tomcat by updating file with following content.
+
+        vi /etc/systemd/system/tomcat.service
+  + Paste the following content
+
+        [Unit] 
+        Description=Tomcat 
+        After=network.target
+
+        [Service]
+        User=tomcat
+        WorkingDirectory=/usr/local/tomcat8 
+        Environment=JRE_HOME=/usr/lib/jvm/jre 
+        Environment=JAVA_HOME=/usr/lib/jvm/jre 
+        Environment=CATALINA_HOME=/usr/local/tomcat8 
+        Environment=CATALINE_BASE=/usr/local/tomcat8 
+        ExecStart=/usr/local/tomcat8/bin/catalina.sh run 
+        ExecStop=/usr/local/tomcat8/bin/shutdown.sh 
+        SyslogIdentifier=tomcat-%i
+
+        [Install] 
+        WantedBy=multi-user.target
+  + After all the configuration, we need to reload, start and enable the tomcat service
+
+        systemctl daemon-reload
+        systemctl start tomcat
+        systemctl enable tomcat
+  + Now, we can begin to build and deploy our source code on the Tomcat server by running the following commands
+
+        git clone -b local-setup https://github.com/sadebare/vprofile-project.git
+        cd vprofile-project
+        mvn install
+        systemctl stop tomcat
+        rm -rf /usr/local/tomcat8/webapps/ROOT*
+        cp target/vprofile-v2.war /usr/local/tomcat8/webapps/ROOT.war
+        systemctl start tomcat
+        chown tomcat.tomcat /usr/local/tomcat8/webapps -R
+        systemctl restart tomcat
+
+### NGINX SETUP
+  + Firstly, we ssh into the Nginx vm, change to root user and update OS with latest patches
+
+        vagrant ssh web01
+        sudo -i
+        apt update && apt upgrade -y
+
+  + Now, we can install nginx on the vm
+
+        apt install nginx -y
+  
+  + Create Nginx conf file with below content
+        
+        vi /etc/nginx/sites-available/vproapp
+
+        upstream vproapp { 
+          server app01:8080;
+        } 
+        server {
+          listen 80;
+          location / {
+        proxy_pass http://vproapp;
+        }
+        }
+  + Remove default nginx configuration and create a link to activate website
+
+        rm -rf /etc/nginx/sites-enabled/default
+        ln -s /etc/nginx/sites-available/vproapp /etc/nginx/sites-enabled/vproapp
+
+  + After which we restart our Nginx server and logout
+
+        systemctl restart nginx
+        
+### Time To Verify Out Setup
+  + While still in web01 vm, we can get the address of the load balancer vm by running the command
+
+        ifconfig
+    ![ip_add](./images/ip_addr.png)
+  + We could tell that the IP addr of the vm was `192.168.56.11`. Now open up your browser and access - 
+
+        http://192.168.56.11
+    ![website](./images/web.png)
+  + Now we confirm that our Nginx vm successfully routed our request to Tomcat vm
+  + Access the web page from the login page with username:- `adminn_vp` and password of `admin_vp`. On succesful login, you get this page which means our MySQL database is connected to our application because the user details is coming from the database:-
+
+      ![welcome](./images/welcome_page.png)
+  + We can also verify if the memcache vm is connected by clicking on the `All Users` button on the welcome page, this should show this page:-
+
+      ![memcache](./images/memcache.png)
+  + Also, we can verify if the RabbitMq vm is connected by clicking on the `RabbitMq` button on the welcome page also, the below page should be the response
+
+      ![rabbit](./images/rabbit.png)
+
+### Time to destroy all vm
+  + We change our directory to the vagrant directory, the we run the command 
+
+        vagrant destroy
+  + let us verify if all vm are destroyed by going to the virtual box interface and you should see something like this
+
+      ![vag destroy](./images/des-vag.png)
+
+
+
+
