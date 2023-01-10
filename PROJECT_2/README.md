@@ -232,3 +232,4 @@ This is a follow up project from [project 1](https://github.com/sadebare/AWS_DEV
   + We then bring down all the vm running the command
 
         vagrant destroy
+      ![destroy](./images/destro.png)
