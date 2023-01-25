@@ -501,7 +501,6 @@
         Secret: <paste_token>
         name: slacktoken
         description: slacktoken
-  ![slack](./images/slack.png)
 
   + We will add below part to our Jenkinsfile in the same level with stages and push our changes.
 
