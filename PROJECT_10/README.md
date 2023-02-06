@@ -17,8 +17,26 @@
       ---
       - import_playbook: vpc-setup.yml
       - import_playbook: bastion-instance.yml
-+ Launch an EC2 instance to install ansible and fetch the code
++ Launch an EC2 instance to install ansible and fetch the code to run
 
+      AMI: Ubuntu 20.04
+      Instance type: t2.micro
+      security group: port 22
+      user data:
+      ------------------------
+      #!/bin/bash
+      sudo apt update
+      sudo apt install ansible -y
+
++ Now, we can login to the just initiated instance and attach the IAM role created while creating the VPC to the instance to allow our ansible instance have full access to all our aws services
+
+      ansible --version
+      sudo apt install python3-boto3 python3-botocore python3-boto -y
+      git clone https://github.com/sadebare/AWS_DEVOPS_PROJECTS.git
+      cd AWS_DEVOPS_PROJECTS/PROJECT_10/
+      ansible-playbook site.yml
+
++ 
 
 ## SECOND PHASE SETUP SYSTEM DESIGN
 ![system_design_2](./images/setup2.png)
