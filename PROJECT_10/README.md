@@ -35,6 +35,8 @@
       git clone https://github.com/sadebare/AWS_DEVOPS_PROJECTS.git
       cd AWS_DEVOPS_PROJECTS/PROJECT_10/
       ansible-playbook site.yml
+  
+  ![ansible](./images/ans_vpc.png)
 
 + 
 

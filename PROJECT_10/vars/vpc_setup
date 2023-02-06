@@ -23,6 +23,4 @@ state: present
 
 #Bastion vars
 bastion_ami: ami-05bfbece1ed5beb54 # Amazon Linux-2 AMI-ID from us-east-2 region
-MYIP: 102.89.44.62/32 #change to your IP
-keyName: vprofile-key
-instanceType: t2.micro
+MYIP: 102.89.32.137/32 #change to your IP
