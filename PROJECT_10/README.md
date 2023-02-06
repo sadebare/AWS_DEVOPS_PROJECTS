@@ -38,7 +38,9 @@
   
   ![ansible](./images/ans_vpc.png)
 
-+ 
++ Create a new file `vpro-ec2-stack.yml` using the code editor
+
+      
 
 ## SECOND PHASE SETUP SYSTEM DESIGN
 ![system_design_2](./images/setup2.png)
