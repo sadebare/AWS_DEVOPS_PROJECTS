@@ -100,3 +100,10 @@
          assign_public_ip: yes
          group_id: "{{ BastionSG_out.group_id }}"
       register: privsub3Instance_out
+
+    - name: Insert/Update "BastionSGid" in vars/vpc-output_vars
+      blockinfile:
+        path: vars/vpc-output_vars
+        backup: yes
+        block: |
+          BastionSGid: {{BastionSG_out.group_id}}

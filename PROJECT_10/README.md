@@ -50,7 +50,7 @@
       rmq_ami: ami-07efac79022b86107
       mysql_ami: ami-07efac79022b86107
 
-+ Create a new file `vpro-ec2-stack.yml` using the code editor
++ Create a new file `vpro-ec2-stack.yml` using the code editor or terminal which contains our playbook for the instance, security group and loadbalancer we are setting up.
 
 
 
