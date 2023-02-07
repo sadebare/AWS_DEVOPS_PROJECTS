@@ -38,9 +38,21 @@
   
   ![ansible](./images/ans_vpc.png)
 
++ Create another variable file which contains ami of the instances we will be using
+
+      touch vars/vprostacksetup
+      ---------------------------
+
+
+      nginx_ami: ami-07efac79022b86107
+      tomcat_ami: ami-07efac79022b86107
+      memcache_ami: ami-07efac79022b86107
+      rmq_ami: ami-07efac79022b86107
+      mysql_ami: ami-07efac79022b86107
+
 + Create a new file `vpro-ec2-stack.yml` using the code editor
 
-      
+
 
 ## SECOND PHASE SETUP SYSTEM DESIGN
 ![system_design_2](./images/setup2.png)
